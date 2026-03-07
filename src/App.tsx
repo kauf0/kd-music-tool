@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { open } from "@tauri-apps/plugin-dialog";
+import { open, confirm } from "@tauri-apps/plugin-dialog";
 import "./App.css";
 
 interface TrackMeta {
@@ -82,11 +82,12 @@ export default function App() {
 
   async function loadInstalled(path: string) {
     try {
+      await invoke("backup_game_files", { gamePath: path });
       const tracks = await invoke<InstalledTrack[]>("read_music_kdr", { gamePath: path });
       setInstalled(tracks);
       addLog(`loaded ${tracks.length} tracks from music.kdr`);
     } catch (e) {
-      addLog(`error reading music.kdr: ${e}`);
+      addLog(`error: ${e}`);
     }
   }
 
@@ -166,6 +167,19 @@ export default function App() {
       loadInstalled(gamePath);
     } catch (e) {
       addLog(`remove failed: ${e}`);
+    }
+  }
+
+  async function resetMusic() {
+    if (!gamePath) return;
+    const ok = await confirm("This will restore original data.win and audiogroup3.dat from backup and remove all custom tracks.", { title: "Reset custom music", kind: "warning" });
+    if (!ok) return;
+    try {
+      await invoke("reset_custom_music", { gamePath });
+      addLog("reset: custom music removed, original files restored");
+      loadInstalled(gamePath);
+    } catch (e) {
+      addLog(`reset failed: ${e}`);
     }
   }
 
@@ -314,6 +328,7 @@ export default function App() {
                 value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
               {searchQuery && <button className="search-clear" onClick={() => setSearchQuery("")}>×</button>}
             </div>
+            <button className="btn btn-sm btn-danger" onClick={resetMusic}>RESET</button>
           </div>
 
           <div className="track-list" style={{ flex: 1, overflowY: "auto" }}>
