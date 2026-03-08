@@ -275,9 +275,12 @@ fn install_track(
         }
     }
 
-    let res_dir = std::path::PathBuf::from(
-        "/home/kpc/Documents/git/0-NON-PERSONAL/KeepDriving_Music_Mod_Util/src-tauri/UTMT",
-    );
+    let res_dir = app_handle
+        .path()
+        .resource_dir()
+        .map_err(|e| format!("Can't get resource dir: {}", e))?
+        .join("UTMT");
+
     let csx = std::env::temp_dir().join("kd_inject_music.csx");
 
     let ag_dir_str = ag_dir.to_str().unwrap().replace('\\', "/");
