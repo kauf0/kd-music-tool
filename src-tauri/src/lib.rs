@@ -468,6 +468,14 @@ foreach (string file in Directory.GetFiles(importFolder))
         ));
     }
 
+    // clearing ag_music after injection
+    let _ = fs::remove_file(&ogg_path);
+    if let Ok(mut entries) = fs::read_dir(&ag_dir) {
+        if entries.next().is_none() {
+            let _ = fs::remove_dir(&ag_dir);
+        }
+    }
+
     // writing to music.kdr
     let kdr = Path::new(&game_path).join("music.kdr");
     let mut content =
