@@ -150,7 +150,7 @@ fn read_music_kdr(game_path: String) -> Result<Vec<InstalledTrack>, String> {
 
 #[tauri::command]
 fn backup_game_files(game_path: String) -> Result<(), String> {
-    let files = ["data.win", "audiogroup3.dat"];
+    let files = ["data.win", "audiogroup3.dat", "music.kdr"];
     for f in &files {
         let src = Path::new(&game_path).join(f);
         let dst = Path::new(&game_path).join(format!("{}.bak", f));
@@ -164,7 +164,7 @@ fn backup_game_files(game_path: String) -> Result<(), String> {
 
 #[tauri::command]
 fn reset_custom_music(game_path: String) -> Result<(), String> {
-    let files = ["data.win", "audiogroup3.dat"];
+    let files = ["data.win", "audiogroup3.dat", "music.kdr"];
     for f in &files {
         let bak = Path::new(&game_path).join(format!("{}.bak", f));
         let dst = Path::new(&game_path).join(f);
@@ -173,47 +173,6 @@ fn reset_custom_music(game_path: String) -> Result<(), String> {
         }
         fs::copy(&bak, &dst).map_err(|e| format!("Can't restore {}: {}", f, e))?;
     }
-
-    // чистим кастомные треки из music.kdr
-    let kdr = Path::new(&game_path).join("music.kdr");
-    let content = fs::read_to_string(&kdr).map_err(|e| format!("Can't read music.kdr: {}", e))?;
-
-    let mut result = String::new();
-    let mut block = String::new();
-    let mut current_start = String::new();
-    let mut in_block = false;
-
-    for line in content.lines() {
-        let trimmed = line.trim();
-        if trimmed == "{" {
-            in_block = true;
-            block.clear();
-            current_start.clear();
-            block.push_str(line);
-            block.push('\n');
-        } else if trimmed == "}" && in_block {
-            block.push_str(line);
-            block.push('\n');
-            // кастомные треки имеют start: 1, оригинальные start: 0
-            if current_start != "1" {
-                result.push_str(&block);
-            }
-            in_block = false;
-        } else if in_block {
-            if let Some((k, v)) = trimmed.split_once(':') {
-                if k.trim() == "start" {
-                    current_start = v.trim().to_string();
-                }
-            }
-            block.push_str(line);
-            block.push('\n');
-        } else {
-            result.push_str(line);
-            result.push('\n');
-        }
-    }
-
-    fs::write(&kdr, result).map_err(|e| format!("Can't write music.kdr: {}", e))?;
 
     Ok(())
 }
