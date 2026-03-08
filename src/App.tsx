@@ -47,7 +47,6 @@ export default function App() {
   const [installed, setInstalled] = useState<InstalledTrack[]>([]);
   const [selQueue, setSelQueue] = useState<string | null>(null);
   const [selInstalled, setSelInstalled] = useState<string | null>(null);
-  const [editing, setEditing] = useState<TrackMeta | null>(null);
   const [log, setLog] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -69,6 +68,10 @@ export default function App() {
       for (const p of audio) addFile(p);
     });
     return () => { unlisten.then(f => f()); };
+  }, []);
+
+  useEffect(() => {
+    invoke("check_deps").catch(e => addLog(`warning: ${e}`));
   }, []);
 
   async function pickGameFolder() {
@@ -288,8 +291,8 @@ export default function App() {
               </div>
               <div className="detail-row">
                 <span className="dk">TITLE</span>
-                  <input className="detail-input" value={selQueueTrack.title}
-                    onChange={e => setQueue(q => q.map(t => t.id === selQueueTrack.id ? { ...t, title: e.target.value } : t))} />
+                <input className="detail-input" value={selQueueTrack.title}
+                  onChange={e => setQueue(q => q.map(t => t.id === selQueueTrack.id ? { ...t, title: e.target.value } : t))} />
               </div>
               <div className="detail-row">
                 <span className="dk">TRACK#</span>

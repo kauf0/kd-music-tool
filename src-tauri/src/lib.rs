@@ -24,22 +24,39 @@ pub struct InstalledTrack {
 
 #[tauri::command]
 fn read_audio_meta(file_path: String) -> Result<AudioMeta, String> {
-    let ffprobe = if cfg!(target_os = "windows") { "ffprobe.exe" } else { "ffprobe" };
+    let ffprobe = if cfg!(target_os = "windows") {
+        "ffprobe.exe"
+    } else {
+        "ffprobe"
+    };
 
     let out = Command::new(ffprobe)
-        .args(["-v", "quiet", "-print_format", "json", "-show_format", &file_path])
+        .args([
+            "-v",
+            "quiet",
+            "-print_format",
+            "json",
+            "-show_format",
+            &file_path,
+        ])
         .output()
         .map_err(|_| "ffprobe not found. Install ffmpeg and make sure it's in PATH.".to_string())?;
 
-    let json: serde_json::Value = serde_json::from_slice(&out.stdout)
-        .map_err(|e| format!("ffprobe parse error: {}", e))?;
+    let json: serde_json::Value =
+        serde_json::from_slice(&out.stdout).map_err(|e| format!("ffprobe parse error: {}", e))?;
 
     let tags = &json["format"]["tags"];
 
     let tag = |key: &str| -> String {
         let lo = tags[key].as_str().unwrap_or("").trim().to_string();
-        if !lo.is_empty() { return lo; }
-        tags[key.to_uppercase().as_str()].as_str().unwrap_or("").trim().to_string()
+        if !lo.is_empty() {
+            return lo;
+        }
+        tags[key.to_uppercase().as_str()]
+            .as_str()
+            .unwrap_or("")
+            .trim()
+            .to_string()
     };
 
     let track_number = tag("track")
@@ -50,21 +67,56 @@ fn read_audio_meta(file_path: String) -> Result<AudioMeta, String> {
 
     let artist = {
         let a = tag("artist");
-        if a.is_empty() { tag("album_artist") } else { a }
+        if a.is_empty() {
+            tag("album_artist")
+        } else {
+            a
+        }
     };
 
     let duration = json["format"]["duration"]
         .as_str()
         .and_then(|s| s.parse::<f64>().ok());
 
-    Ok(AudioMeta { artist, album: tag("album"), title: tag("title"), track_number, duration })
+    Ok(AudioMeta {
+        artist,
+        album: tag("album"),
+        title: tag("title"),
+        track_number,
+        duration,
+    })
+}
+
+#[tauri::command]
+fn check_deps() -> Result<(), String> {
+    let ffmpeg = if cfg!(target_os = "windows") {
+        "ffmpeg.exe"
+    } else {
+        "ffmpeg"
+    };
+    let ffprobe = if cfg!(target_os = "windows") {
+        "ffprobe.exe"
+    } else {
+        "ffprobe"
+    };
+
+    Command::new(ffmpeg)
+        .arg("-version")
+        .output()
+        .map_err(|_| "ffmpeg not found. Install ffmpeg and make sure it's in PATH.".to_string())?;
+
+    Command::new(ffprobe)
+        .arg("-version")
+        .output()
+        .map_err(|_| "ffprobe not found. Install ffmpeg and make sure it's in PATH.".to_string())?;
+
+    Ok(())
 }
 
 #[tauri::command]
 fn read_music_kdr(game_path: String) -> Result<Vec<InstalledTrack>, String> {
     let path = Path::new(&game_path).join("music.kdr");
-    let content = fs::read_to_string(&path)
-        .map_err(|e| format!("Can't read music.kdr: {}", e))?;
+    let content = fs::read_to_string(&path).map_err(|e| format!("Can't read music.kdr: {}", e))?;
 
     let mut tracks = Vec::new();
     let mut block: std::collections::HashMap<String, String> = std::collections::HashMap::new();
@@ -102,9 +154,10 @@ fn backup_game_files(game_path: String) -> Result<(), String> {
     for f in &files {
         let src = Path::new(&game_path).join(f);
         let dst = Path::new(&game_path).join(format!("{}.bak", f));
-        if dst.exists() { continue; }
-        fs::copy(&src, &dst)
-            .map_err(|e| format!("Can't backup {}: {}", f, e))?;
+        if dst.exists() {
+            continue;
+        }
+        fs::copy(&src, &dst).map_err(|e| format!("Can't backup {}: {}", f, e))?;
     }
     Ok(())
 }
@@ -118,14 +171,12 @@ fn reset_custom_music(game_path: String) -> Result<(), String> {
         if !bak.exists() {
             return Err(format!("{}.bak not found — backup missing", f));
         }
-        fs::copy(&bak, &dst)
-            .map_err(|e| format!("Can't restore {}: {}", f, e))?;
+        fs::copy(&bak, &dst).map_err(|e| format!("Can't restore {}: {}", f, e))?;
     }
 
     // чистим кастомные треки из music.kdr
     let kdr = Path::new(&game_path).join("music.kdr");
-    let content = fs::read_to_string(&kdr)
-        .map_err(|e| format!("Can't read music.kdr: {}", e))?;
+    let content = fs::read_to_string(&kdr).map_err(|e| format!("Can't read music.kdr: {}", e))?;
 
     let mut result = String::new();
     let mut block = String::new();
@@ -138,9 +189,11 @@ fn reset_custom_music(game_path: String) -> Result<(), String> {
             in_block = true;
             block.clear();
             current_start.clear();
-            block.push_str(line); block.push('\n');
+            block.push_str(line);
+            block.push('\n');
         } else if trimmed == "}" && in_block {
-            block.push_str(line); block.push('\n');
+            block.push_str(line);
+            block.push('\n');
             // кастомные треки имеют start: 1, оригинальные start: 0
             if current_start != "1" {
                 result.push_str(&block);
@@ -152,14 +205,15 @@ fn reset_custom_music(game_path: String) -> Result<(), String> {
                     current_start = v.trim().to_string();
                 }
             }
-            block.push_str(line); block.push('\n');
+            block.push_str(line);
+            block.push('\n');
         } else {
-            result.push_str(line); result.push('\n');
+            result.push_str(line);
+            result.push('\n');
         }
     }
 
-    fs::write(&kdr, result)
-        .map_err(|e| format!("Can't write music.kdr: {}", e))?;
+    fs::write(&kdr, result).map_err(|e| format!("Can't write music.kdr: {}", e))?;
 
     Ok(())
 }
@@ -167,8 +221,7 @@ fn reset_custom_music(game_path: String) -> Result<(), String> {
 #[tauri::command]
 fn remove_track(game_path: String, dev_name: String) -> Result<(), String> {
     let path = Path::new(&game_path).join("music.kdr");
-    let content = fs::read_to_string(&path)
-        .map_err(|e| format!("Can't read music.kdr: {}", e))?;
+    let content = fs::read_to_string(&path).map_err(|e| format!("Can't read music.kdr: {}", e))?;
 
     let mut result = String::new();
     let mut block = String::new();
@@ -181,9 +234,11 @@ fn remove_track(game_path: String, dev_name: String) -> Result<(), String> {
             in_block = true;
             block.clear();
             current_dev.clear();
-            block.push_str(line); block.push('\n');
+            block.push_str(line);
+            block.push('\n');
         } else if trimmed == "}" && in_block {
-            block.push_str(line); block.push('\n');
+            block.push_str(line);
+            block.push('\n');
             if current_dev != dev_name {
                 result.push_str(&block);
             }
@@ -194,9 +249,11 @@ fn remove_track(game_path: String, dev_name: String) -> Result<(), String> {
                     current_dev = v.trim().to_string();
                 }
             }
-            block.push_str(line); block.push('\n');
+            block.push_str(line);
+            block.push('\n');
         } else {
-            result.push_str(line); result.push('\n');
+            result.push_str(line);
+            result.push('\n');
         }
     }
 
@@ -214,8 +271,7 @@ fn install_track(
     app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
     let ag_dir = Path::new(&game_path).join("ag_music");
-    fs::create_dir_all(&ag_dir)
-        .map_err(|e| format!("Can't create ag_music dir: {}", e))?;
+    fs::create_dir_all(&ag_dir).map_err(|e| format!("Can't create ag_music dir: {}", e))?;
 
     // convert to ogg and copy
     let input_ext = Path::new(&file_path)
@@ -227,30 +283,48 @@ fn install_track(
     let ogg_path = ag_dir.join(format!("{}.ogg", track_id));
 
     if input_ext == "ogg" {
-        fs::copy(&file_path, &ogg_path)
-            .map_err(|e| format!("Failed to copy ogg: {}", e))?;
+        fs::copy(&file_path, &ogg_path).map_err(|e| format!("Failed to copy ogg: {}", e))?;
     } else {
-        let ffmpeg = if cfg!(target_os = "windows") { "ffmpeg.exe" } else { "ffmpeg" };
+        let ffmpeg = if cfg!(target_os = "windows") {
+            "ffmpeg.exe"
+        } else {
+            "ffmpeg"
+        };
         let ff = Command::new(ffmpeg)
             .args([
-                "-y", "-i", &file_path,
-                "-c:a", "libvorbis", "-q:a", "4", "-ar", "44100",
+                "-y",
+                "-i",
+                &file_path,
+                "-c:a",
+                "libvorbis",
+                "-q:a",
+                "4",
+                "-ar",
+                "44100",
                 ogg_path.to_str().unwrap(),
             ])
             .output()
-            .map_err(|_| "ffmpeg not found. Install ffmpeg and make sure it's in PATH.".to_string())?;
+            .map_err(|_| {
+                "ffmpeg not found. Install ffmpeg and make sure it's in PATH.".to_string()
+            })?;
 
         if !ff.status.success() {
-            return Err(format!("ffmpeg failed: {}", String::from_utf8_lossy(&ff.stderr)));
+            return Err(format!(
+                "ffmpeg failed: {}",
+                String::from_utf8_lossy(&ff.stderr)
+            ));
         }
     }
 
-    let res_dir = std::path::PathBuf::from("/home/kpc/Documents/git/0-NON-PERSONAL/KeepDriving_Music_Mod_Util/src-tauri/UTMT");
+    let res_dir = std::path::PathBuf::from(
+        "/home/kpc/Documents/git/0-NON-PERSONAL/KeepDriving_Music_Mod_Util/src-tauri/UTMT",
+    );
     let csx = std::env::temp_dir().join("kd_inject_music.csx");
 
     let ag_dir_str = ag_dir.to_str().unwrap().replace('\\', "/");
 
-    let script = format!(r#"using UndertaleModLib;
+    let script = format!(
+        r#"using UndertaleModLib;
 using UndertaleModLib.Models;
 using static UndertaleModLib.Models.UndertaleSound;
 using static UndertaleModLib.UndertaleData;
@@ -352,10 +426,11 @@ foreach (string file in Directory.GetFiles(importFolder))
         GroupID = needAGRP ? audioGroupID : Data.GetBuiltinSoundGroupID()
     }});
 }}
-"#, ag_dir = ag_dir_str);
+"#,
+        ag_dir = ag_dir_str
+    );
 
-    fs::write(&csx, &script)
-        .map_err(|e| format!("Can't write csx to {:?}: {}", csx, e))?;
+    fs::write(&csx, &script).map_err(|e| format!("Can't write csx to {:?}: {}", csx, e))?;
 
     // running UMT on win, dotnet on linux
     let data_win = Path::new(&game_path).join("data.win");
@@ -364,7 +439,10 @@ foreach (string file in Directory.GetFiles(importFolder))
         Command::new(&umt)
             .args([
                 data_win.to_str().unwrap(),
-                "load", "scriptfile", csx.to_str().unwrap(), "save",
+                "load",
+                "scriptfile",
+                csx.to_str().unwrap(),
+                "save",
             ])
             .output()
             .map_err(|e| format!("UndertaleModCLI not found: {}", e))?
@@ -374,21 +452,26 @@ foreach (string file in Directory.GetFiles(importFolder))
             .args([
                 "load",
                 data_win.to_str().unwrap(),
-                "-s", csx.to_str().unwrap(),
-                "-o", data_win.to_str().unwrap(),
+                "-s",
+                csx.to_str().unwrap(),
+                "-o",
+                data_win.to_str().unwrap(),
             ])
             .output()
             .map_err(|e| format!("UMT bin not found at {:?}: {}", umt_bin, e))?
     };
 
     if !umt_out.status.success() {
-        return Err(format!("UMT error: {}", String::from_utf8_lossy(&umt_out.stderr)));
+        return Err(format!(
+            "UMT error: {}",
+            String::from_utf8_lossy(&umt_out.stderr)
+        ));
     }
 
     // writing to music.kdr
     let kdr = Path::new(&game_path).join("music.kdr");
-    let mut content = fs::read_to_string(&kdr)
-        .map_err(|e| format!("Can't read music.kdr: {}", e))?;
+    let mut content =
+        fs::read_to_string(&kdr).map_err(|e| format!("Can't read music.kdr: {}", e))?;
     content.push_str(&format!(
         "\n{{\n\tdev_name: {}\n\ttitle: {}\n\tartist: {}\n\ttrack: {}\n\tstart: 1\n}}",
         dev_name, title, artist, track_id
@@ -404,6 +487,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             read_audio_meta,
+            check_deps,
             read_music_kdr,
             install_track,
             remove_track,
