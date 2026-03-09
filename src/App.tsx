@@ -206,9 +206,8 @@ export default function App() {
     <div className="app">
       <header className="header">
         <div className="logo">
-          <span className="logo-mark">◈</span>
-          <span className="logo-name">KD<span>MOD</span></span>
-          <span className="logo-tag">// music injector</span>
+          <span className="logo-name">KD<span>MUSIC</span>TOOL</span>
+          <span className="logo-tag">// be on your wave</span>
         </div>
         <div className="path-row">
           <span className="path-label">GAME</span>
