@@ -137,6 +137,7 @@ export default function App() {
     const pending = queue.filter(t => t.status === "pending");
     if (!pending.length) { addLog("nothing to install"); return; }
     setBusy(true);
+    await new Promise(r => setTimeout(r, 50));
 
     for (const t of pending) {
       setQueue(prev => prev.map(x => x.id === t.id ? { ...x, status: "converting" } : x));
@@ -315,7 +316,7 @@ export default function App() {
             onClick={installAll}
             disabled={busy || !gamePath || !queue.some(t => t.status === "pending")}
           >
-            {busy ? <><span className="spin">◌</span> WAIT</> : <>▶ GO</>}
+            {busy ? <span className="spin">◌</span> : <>▶ GO</>}
           </button>
           <div className="mid-line" />
         </div>

@@ -477,8 +477,9 @@ body::after {
 }
 
 .btn-install.busy {
-  background: var(--accent-dn);
-  color: var(--bg2);
+  background: var(--red);
+  color: #f5d0c0;
+  box-shadow: 3px 3px 0 var(--corpus4), inset 1px 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .spin {
