@@ -13,7 +13,7 @@ Drop your audio files, set metadata, hit GO and listen to your farourite music i
 
 ## Requirements
 
-- [ffmpeg](https://ffmpeg.org/download.html) installed and available in PATH
+- Linux only: [ffmpeg](https://ffmpeg.org/download.html) installed and available in PATH (on Windows ffmpeg is bundled!)
 - [Keep Driving](https://store.steampowered.com/app/2509010/Keep_Driving/) game
 
 ## Download
@@ -70,6 +70,7 @@ npm run tauri dev
 ## Third-party
 
 This tool bundles [UndertaleModTool](https://github.com/UnderminersTeam/UndertaleModTool), licensed under [GPL v3](https://www.gnu.org/licenses/gpl-3.0.html).
+This tool bundles [ffmpeg](https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip), licensed under [LGPL v2.1](http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html).
 
 ## License
 

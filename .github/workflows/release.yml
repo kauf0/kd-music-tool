@@ -66,6 +66,15 @@ jobs:
           Expand-Archive -Path "umt.zip" -DestinationPath "src-tauri/UTMT-windows"
           Copy-Item -Recurse "src-tauri/UTMT-windows" "src-tauri/UTMT"
 
+      - name: Download ffmpeg for Windows
+        run: |
+          Invoke-WebRequest -Uri "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -OutFile "ffmpeg.zip"
+          Expand-Archive -Path "ffmpeg.zip" -DestinationPath "ffmpeg-tmp"
+          $ffdir = Get-ChildItem "ffmpeg-tmp" -Directory | Select-Object -First 1
+          Copy-Item "$($ffdir.FullName)/bin/ffmpeg.exe" "src-tauri/UTMT-windows/ffmpeg.exe"
+          Copy-Item "$($ffdir.FullName)/bin/ffprobe.exe" "src-tauri/UTMT-windows/ffprobe.exe"
+          Remove-Item -Recurse -Force "ffmpeg-tmp", "ffmpeg.zip"
+          
       - name: Build
         run: npm run tauri build -- --no-bundle
 
@@ -75,6 +84,8 @@ jobs:
           $stage = New-Item -ItemType Directory -Path "staging"
           Copy-Item "src-tauri/target/release/kd-music-tool.exe" "$stage/"
           Copy-Item -Recurse "src-tauri/UTMT" "$stage/UTMT"
+          Copy-Item "src-tauri/UTMT-windows/ffmpeg.exe" "$stage/"
+          Copy-Item "src-tauri/UTMT-windows/ffprobe.exe" "$stage/"
           $zip = "dist-release/kd-music-tool-v$version-windows.zip"
           New-Item -ItemType Directory -Force -Path "dist-release"
           Compress-Archive -Path "$stage/*" -DestinationPath $zip

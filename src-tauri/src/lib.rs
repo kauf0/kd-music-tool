@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 #[derive(Serialize, Deserialize)]
@@ -21,15 +21,49 @@ pub struct InstalledTrack {
     pub start: i32,
 }
 
+// returning path to ffmpeg bundled on Win, system on Linux
+fn ffmpeg_path() -> PathBuf {
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(exe) = std::env::current_exe() {
+            if let Some(dir) = exe.parent() {
+                let bundled = dir.join("ffmpeg.exe");
+                if bundled.exists() {
+                    return bundled;
+                }
+            }
+        }
+        PathBuf::from("ffmpeg.exe")
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        PathBuf::from("ffmpeg")
+    }
+}
+
+// returning path to ffprobe bundled on Win, system on Linux
+fn ffprobe_path() -> PathBuf {
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(exe) = std::env::current_exe() {
+            if let Some(dir) = exe.parent() {
+                let bundled = dir.join("ffprobe.exe");
+                if bundled.exists() {
+                    return bundled;
+                }
+            }
+        }
+        PathBuf::from("ffprobe.exe")
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        PathBuf::from("ffprobe")
+    }
+}
+
 #[tauri::command]
 fn read_audio_meta(file_path: String) -> Result<AudioMeta, String> {
-    let ffprobe = if cfg!(target_os = "windows") {
-        "ffprobe.exe"
-    } else {
-        "ffprobe"
-    };
-
-    let out = Command::new(ffprobe)
+    let out = Command::new(ffprobe_path())
         .args([
             "-v",
             "quiet",
@@ -88,23 +122,12 @@ fn read_audio_meta(file_path: String) -> Result<AudioMeta, String> {
 
 #[tauri::command]
 fn check_deps() -> Result<(), String> {
-    let ffmpeg = if cfg!(target_os = "windows") {
-        "ffmpeg.exe"
-    } else {
-        "ffmpeg"
-    };
-    let ffprobe = if cfg!(target_os = "windows") {
-        "ffprobe.exe"
-    } else {
-        "ffprobe"
-    };
-
-    Command::new(ffmpeg)
+    Command::new(ffmpeg_path())
         .arg("-version")
         .output()
         .map_err(|_| "ffmpeg not found. Install ffmpeg and make sure it's in PATH.".to_string())?;
 
-    Command::new(ffprobe)
+    Command::new(ffprobe_path())
         .arg("-version")
         .output()
         .map_err(|_| "ffprobe not found. Install ffmpeg and make sure it's in PATH.".to_string())?;
@@ -242,12 +265,7 @@ fn install_track(
     if input_ext == "ogg" {
         fs::copy(&file_path, &ogg_path).map_err(|e| format!("Failed to copy ogg: {}", e))?;
     } else {
-        let ffmpeg = if cfg!(target_os = "windows") {
-            "ffmpeg.exe"
-        } else {
-            "ffmpeg"
-        };
-        let ff = Command::new(ffmpeg)
+        let ff = Command::new(ffmpeg_path())
             .args([
                 "-y",
                 "-i",
