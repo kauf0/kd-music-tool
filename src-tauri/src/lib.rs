@@ -417,11 +417,12 @@ foreach (string file in Directory.GetFiles(importFolder))
         let umt = res_dir.join("UndertaleModCLI.exe");
         Command::new(&umt)
             .args([
-                data_win.to_str().unwrap(),
                 "load",
-                "scriptfile",
+                data_win.to_str().unwrap(),
+                "-s",
                 csx.to_str().unwrap(),
-                "save",
+                "-o",
+                data_win.to_str().unwrap(),
             ])
             .output()
             .map_err(|e| format!("UndertaleModCLI not found: {}", e))?
