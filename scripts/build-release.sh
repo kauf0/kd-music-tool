@@ -31,6 +31,10 @@ rm -rf "$OUT"
 mkdir -p "$OUT"
 ZIP="$OUT/kd-music-tool-v${VERSION}-${PLATFORM}.zip"
 cd "$STAGE"
-zip -r "$ZIP" .
+if [ "$PLATFORM" = "windows" ]; then
+    powershell -Command "Compress-Archive -Path '$STAGE\\*' -DestinationPath '$ZIP'"
+else
+    zip -r "$ZIP" .
+fi
 
 echo "done: $ZIP ($(du -sh "$ZIP" | cut -f1))"

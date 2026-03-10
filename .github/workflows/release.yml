@@ -64,10 +64,21 @@ jobs:
           Invoke-WebRequest -Uri "https://github.com/UnderminersTeam/UndertaleModTool/releases/download/0.8.4.1/UTMT_CLI_v0.8.4.1-Windows.zip" -OutFile "umt.zip"
           New-Item -ItemType Directory -Force -Path "src-tauri/UTMT-windows"
           Expand-Archive -Path "umt.zip" -DestinationPath "src-tauri/UTMT-windows"
+          Copy-Item -Recurse "src-tauri/UTMT-windows" "src-tauri/UTMT"
 
       - name: Build
-        run: ./scripts/build-release.sh windows
-        shell: bash
+        run: npm run tauri build -- --no-bundle
+
+      - name: Package
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          $stage = New-Item -ItemType Directory -Path "staging"
+          Copy-Item "src-tauri/target/release/kd-music-tool.exe" "$stage/"
+          Copy-Item -Recurse "src-tauri/UTMT" "$stage/UTMT"
+          $zip = "dist-release/kd-music-tool-v$version-windows.zip"
+          New-Item -ItemType Directory -Force -Path "dist-release"
+          Compress-Archive -Path "$stage/*" -DestinationPath $zip
+          Write-Host "done: $zip"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
