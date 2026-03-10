@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    keep_driving_music_mod_util_lib::run()
+    kd_music_tool_lib::run()
 }

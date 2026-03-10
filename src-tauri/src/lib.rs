@@ -2,7 +2,6 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
-use tauri::Manager;
 
 #[derive(Serialize, Deserialize)]
 pub struct AudioMeta {
@@ -227,7 +226,6 @@ fn install_track(
     dev_name: String,
     title: String,
     artist: String,
-    app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
     let ag_dir = Path::new(&game_path).join("ag_music");
     fs::create_dir_all(&ag_dir).map_err(|e| format!("Can't create ag_music dir: {}", e))?;
@@ -275,11 +273,12 @@ fn install_track(
         }
     }
 
-    let res_dir = app_handle
-        .path()
-        .resource_dir()
-        .map_err(|e| format!("Can't get resource dir: {}", e))?
-        .join("UTMT");
+    let exe_dir = std::env::current_exe()
+        .map_err(|e| format!("Can't get exe path: {}", e))?
+        .parent()
+        .ok_or("Can't get exe dir")?
+        .to_path_buf();
+    let res_dir = exe_dir.join("UTMT");
 
     let csx = std::env::temp_dir().join("kd_inject_music.csx");
 

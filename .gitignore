@@ -10,9 +10,12 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+dist-release
 *.local
 src-tauri/target/
 src-tauri/UTMT/
+src-tauri/UTMT-linux/
+src-tauri/UTMT-windows/
 
 # Editor directories and files
 .vscode/*

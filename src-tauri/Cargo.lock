@@ -1542,8 +1542,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "keep-driving-music-mod-util"
-version = "0.1.0"
+name = "kd-music-tool"
+version = "1.0.0"
 dependencies = [
  "serde",
  "serde_json",
