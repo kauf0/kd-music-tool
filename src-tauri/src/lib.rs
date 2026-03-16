@@ -120,6 +120,86 @@ fn read_audio_meta(file_path: String) -> Result<AudioMeta, String> {
     })
 }
 
+fn transliterate(s: &str) -> String {
+    let mut result = String::new();
+    for c in s.chars() {
+        let t = match c {
+            'а' => "a",
+            'б' => "b",
+            'в' => "v",
+            'г' => "g",
+            'д' => "d",
+            'е' => "e",
+            'ё' => "yo",
+            'ж' => "zh",
+            'з' => "z",
+            'и' => "i",
+            'й' => "y",
+            'к' => "k",
+            'л' => "l",
+            'м' => "m",
+            'н' => "n",
+            'о' => "o",
+            'п' => "p",
+            'р' => "r",
+            'с' => "s",
+            'т' => "t",
+            'у' => "u",
+            'ф' => "f",
+            'х' => "kh",
+            'ц' => "ts",
+            'ч' => "ch",
+            'ш' => "sh",
+            'щ' => "sch",
+            'ъ' => "",
+            'ы' => "y",
+            'ь' => "",
+            'э' => "e",
+            'ю' => "yu",
+            'я' => "ya",
+            'А' => "A",
+            'Б' => "B",
+            'В' => "V",
+            'Г' => "G",
+            'Д' => "D",
+            'Е' => "E",
+            'Ё' => "Yo",
+            'Ж' => "Zh",
+            'З' => "Z",
+            'И' => "I",
+            'Й' => "Y",
+            'К' => "K",
+            'Л' => "L",
+            'М' => "M",
+            'Н' => "N",
+            'О' => "O",
+            'П' => "P",
+            'Р' => "R",
+            'С' => "S",
+            'Т' => "T",
+            'У' => "U",
+            'Ф' => "F",
+            'Х' => "Kh",
+            'Ц' => "Ts",
+            'Ч' => "Ch",
+            'Ш' => "Sh",
+            'Щ' => "Sch",
+            'Ъ' => "",
+            'Ы' => "Y",
+            'Ь' => "",
+            'Э' => "E",
+            'Ю' => "Yu",
+            'Я' => "Ya",
+            _ => {
+                result.push(c);
+                continue;
+            }
+        };
+        result.push_str(t);
+    }
+    result
+}
+
 #[tauri::command]
 fn check_deps() -> Result<(), String> {
     Command::new(ffmpeg_path())
@@ -462,7 +542,10 @@ foreach (string file in Directory.GetFiles(importFolder))
         fs::read_to_string(&kdr).map_err(|e| format!("Can't read music.kdr: {}", e))?;
     content.push_str(&format!(
         "\n{{\n\tdev_name: {}\n\ttitle: {}\n\tartist: {}\n\ttrack: {}\n\tstart: 1\n}}",
-        dev_name, title, artist, track_id
+        dev_name,
+        transliterate(&title),
+        transliterate(&artist),
+        track_id
     ));
     fs::write(&kdr, content).map_err(|e| format!("Can't write music.kdr: {}", e))?;
 
