@@ -71,7 +71,7 @@ fn read_audio_meta(file_path: &str) -> Result<AudioMeta, String> {
             "-print_format",
             "json",
             "-show_format",
-            &file_path,
+            file_path,
         ])
         .output()
         .map_err(|_| "ffprobe not found. Install ffmpeg and make sure it's in PATH.".to_string())?;
@@ -130,12 +130,12 @@ fn transliterate(s: &str) -> String {
             'в' => "v",
             'г' => "g",
             'д' => "d",
-            'е' => "e",
+            'е' | 'э' => "e",
             'ё' => "yo",
             'ж' => "zh",
             'з' => "z",
             'и' => "i",
-            'й' => "y",
+            'й' | 'ы' => "y",
             'к' => "k",
             'л' => "l",
             'м' => "m",
@@ -152,10 +152,7 @@ fn transliterate(s: &str) -> String {
             'ч' => "ch",
             'ш' => "sh",
             'щ' => "sch",
-            'ъ' => "",
-            'ы' => "y",
-            'ь' => "",
-            'э' => "e",
+            'ъ' | 'ь' | 'Ъ' | 'Ь' => "",
             'ю' => "yu",
             'я' => "ya",
             'А' => "A",
@@ -163,12 +160,12 @@ fn transliterate(s: &str) -> String {
             'В' => "V",
             'Г' => "G",
             'Д' => "D",
-            'Е' => "E",
+            'Е' | 'Э' => "E",
             'Ё' => "Yo",
             'Ж' => "Zh",
             'З' => "Z",
             'И' => "I",
-            'Й' => "Y",
+            'Й' | 'Ы' => "Y",
             'К' => "K",
             'Л' => "L",
             'М' => "M",
@@ -185,10 +182,6 @@ fn transliterate(s: &str) -> String {
             'Ч' => "Ch",
             'Ш' => "Sh",
             'Щ' => "Sch",
-            'Ъ' => "",
-            'Ы' => "Y",
-            'Ь' => "",
-            'Э' => "E",
             'Ю' => "Yu",
             'Я' => "Ya",
             _ => {
@@ -344,13 +337,13 @@ fn install_track(
     let ogg_path = ag_dir.join(format!("{}.ogg", track_id));
 
     if input_ext == "ogg" {
-        fs::copy(&file_path, &ogg_path).map_err(|e| format!("Failed to copy ogg: {}", e))?;
+        fs::copy(file_path, &ogg_path).map_err(|e| format!("Failed to copy ogg: {}", e))?;
     } else {
         let ff = Command::new(ffmpeg_path())
             .args([
                 "-y",
                 "-i",
-                &file_path,
+                file_path,
                 "-c:a",
                 "libvorbis",
                 "-q:a",
@@ -545,8 +538,8 @@ foreach (string file in Directory.GetFiles(importFolder))
         content,
         "\n{{\n\tdev_name: {}\n\ttitle: {}\n\tartist: {}\n\ttrack: {}\n\tstart: 1\n}}",
         dev_name,
-        transliterate(&title),
-        transliterate(&artist),
+        transliterate(title),
+        transliterate(artist),
         track_id
     )
     .unwrap();
