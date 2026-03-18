@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::fmt::Write;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -62,7 +63,7 @@ fn ffprobe_path() -> PathBuf {
 }
 
 #[tauri::command]
-fn read_audio_meta(file_path: String) -> Result<AudioMeta, String> {
+fn read_audio_meta(file_path: &str) -> Result<AudioMeta, String> {
     let out = Command::new(ffprobe_path())
         .args([
             "-v",
@@ -216,7 +217,7 @@ fn check_deps() -> Result<(), String> {
 }
 
 #[tauri::command]
-fn read_music_kdr(game_path: String) -> Result<Vec<InstalledTrack>, String> {
+fn read_music_kdr(game_path: &str) -> Result<Vec<InstalledTrack>, String> {
     let path = Path::new(&game_path).join("music.kdr");
     let content = fs::read_to_string(&path).map_err(|e| format!("Can't read music.kdr: {}", e))?;
 
@@ -251,7 +252,7 @@ fn read_music_kdr(game_path: String) -> Result<Vec<InstalledTrack>, String> {
 }
 
 #[tauri::command]
-fn backup_game_files(game_path: String) -> Result<(), String> {
+fn backup_game_files(game_path: &str) -> Result<(), String> {
     let files = ["data.win", "audiogroup3.dat", "music.kdr"];
     for f in &files {
         let src = Path::new(&game_path).join(f);
@@ -265,7 +266,7 @@ fn backup_game_files(game_path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn reset_custom_music(game_path: String) -> Result<(), String> {
+fn reset_custom_music(game_path: &str) -> Result<(), String> {
     let files = ["data.win", "audiogroup3.dat", "music.kdr"];
     for f in &files {
         let bak = Path::new(&game_path).join(format!("{}.bak", f));
@@ -280,7 +281,7 @@ fn reset_custom_music(game_path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn remove_track(game_path: String, dev_name: String) -> Result<(), String> {
+fn remove_track(game_path: &str, dev_name: &str) -> Result<(), String> {
     let path = Path::new(&game_path).join("music.kdr");
     let content = fs::read_to_string(&path).map_err(|e| format!("Can't read music.kdr: {}", e))?;
 
@@ -323,12 +324,12 @@ fn remove_track(game_path: String, dev_name: String) -> Result<(), String> {
 
 #[tauri::command]
 fn install_track(
-    game_path: String,
-    file_path: String,
-    track_id: String,
-    dev_name: String,
-    title: String,
-    artist: String,
+    game_path: &str,
+    file_path: &str,
+    track_id: &str,
+    dev_name: &str,
+    title: &str,
+    artist: &str,
 ) -> Result<(), String> {
     let ag_dir = Path::new(&game_path).join("ag_music");
     fs::create_dir_all(&ag_dir).map_err(|e| format!("Can't create ag_music dir: {}", e))?;
@@ -540,13 +541,15 @@ foreach (string file in Directory.GetFiles(importFolder))
     let kdr = Path::new(&game_path).join("music.kdr");
     let mut content =
         fs::read_to_string(&kdr).map_err(|e| format!("Can't read music.kdr: {}", e))?;
-    content.push_str(&format!(
+    write!(
+        content,
         "\n{{\n\tdev_name: {}\n\ttitle: {}\n\tartist: {}\n\ttrack: {}\n\tstart: 1\n}}",
         dev_name,
         transliterate(&title),
         transliterate(&artist),
         track_id
-    ));
+    )
+    .unwrap();
     fs::write(&kdr, content).map_err(|e| format!("Can't write music.kdr: {}", e))?;
 
     Ok(())
