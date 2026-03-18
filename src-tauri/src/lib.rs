@@ -315,6 +315,7 @@ fn remove_track(game_path: &str, dev_name: &str) -> Result<(), String> {
     fs::write(&path, result).map_err(|e| format!("Can't write music.kdr: {e}"))
 }
 
+#[allow(clippy::too_many_lines)]
 #[tauri::command]
 fn install_track(
     game_path: &str,
@@ -548,6 +549,7 @@ foreach (string file in Directory.GetFiles(importFolder))
     Ok(())
 }
 
+#[allow(clippy::missing_panics_doc)]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
