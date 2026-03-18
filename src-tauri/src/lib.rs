@@ -77,7 +77,7 @@ fn read_audio_meta(file_path: &str) -> Result<AudioMeta, String> {
         .map_err(|_| "ffprobe not found. Install ffmpeg and make sure it's in PATH.".to_string())?;
 
     let json: serde_json::Value =
-        serde_json::from_slice(&out.stdout).map_err(|e| format!("ffprobe parse error: {}", e))?;
+        serde_json::from_slice(&out.stdout).map_err(|e| format!("ffprobe parse error: {e}"))?;
 
     let tags = &json["format"]["tags"];
 
@@ -212,7 +212,7 @@ fn check_deps() -> Result<(), String> {
 #[tauri::command]
 fn read_music_kdr(game_path: &str) -> Result<Vec<InstalledTrack>, String> {
     let path = Path::new(&game_path).join("music.kdr");
-    let content = fs::read_to_string(&path).map_err(|e| format!("Can't read music.kdr: {}", e))?;
+    let content = fs::read_to_string(&path).map_err(|e| format!("Can't read music.kdr: {e}"))?;
 
     let mut tracks = Vec::new();
     let mut block: std::collections::HashMap<String, String> = std::collections::HashMap::new();
@@ -249,11 +249,11 @@ fn backup_game_files(game_path: &str) -> Result<(), String> {
     let files = ["data.win", "audiogroup3.dat", "music.kdr"];
     for f in &files {
         let src = Path::new(&game_path).join(f);
-        let dst = Path::new(&game_path).join(format!("{}.bak", f));
+        let dst = Path::new(&game_path).join(format!("{f}.bak"));
         if dst.exists() {
             continue;
         }
-        fs::copy(&src, &dst).map_err(|e| format!("Can't backup {}: {}", f, e))?;
+        fs::copy(&src, &dst).map_err(|e| format!("Can't backup {f}: {e}"))?;
     }
     Ok(())
 }
@@ -262,12 +262,12 @@ fn backup_game_files(game_path: &str) -> Result<(), String> {
 fn reset_custom_music(game_path: &str) -> Result<(), String> {
     let files = ["data.win", "audiogroup3.dat", "music.kdr"];
     for f in &files {
-        let bak = Path::new(&game_path).join(format!("{}.bak", f));
+        let bak = Path::new(&game_path).join(format!("{f}.bak"));
         let dst = Path::new(&game_path).join(f);
         if !bak.exists() {
-            return Err(format!("{}.bak not found — backup missing", f));
+            return Err(format!("{f}.bak not found — backup missing"));
         }
-        fs::copy(&bak, &dst).map_err(|e| format!("Can't restore {}: {}", f, e))?;
+        fs::copy(&bak, &dst).map_err(|e| format!("Can't restore {f}: {e}"))?;
     }
 
     Ok(())
@@ -276,7 +276,7 @@ fn reset_custom_music(game_path: &str) -> Result<(), String> {
 #[tauri::command]
 fn remove_track(game_path: &str, dev_name: &str) -> Result<(), String> {
     let path = Path::new(&game_path).join("music.kdr");
-    let content = fs::read_to_string(&path).map_err(|e| format!("Can't read music.kdr: {}", e))?;
+    let content = fs::read_to_string(&path).map_err(|e| format!("Can't read music.kdr: {e}"))?;
 
     let mut result = String::new();
     let mut block = String::new();
@@ -312,7 +312,7 @@ fn remove_track(game_path: &str, dev_name: &str) -> Result<(), String> {
         }
     }
 
-    fs::write(&path, result).map_err(|e| format!("Can't write music.kdr: {}", e))
+    fs::write(&path, result).map_err(|e| format!("Can't write music.kdr: {e}"))
 }
 
 #[tauri::command]
@@ -325,7 +325,7 @@ fn install_track(
     artist: &str,
 ) -> Result<(), String> {
     let ag_dir = Path::new(&game_path).join("ag_music");
-    fs::create_dir_all(&ag_dir).map_err(|e| format!("Can't create ag_music dir: {}", e))?;
+    fs::create_dir_all(&ag_dir).map_err(|e| format!("Can't create ag_music dir: {e}"))?;
 
     // convert to ogg and copy
     let input_ext = Path::new(&file_path)
@@ -334,10 +334,10 @@ fn install_track(
         .unwrap_or("")
         .to_lowercase();
 
-    let ogg_path = ag_dir.join(format!("{}.ogg", track_id));
+    let ogg_path = ag_dir.join(format!("{track_id}.ogg"));
 
     if input_ext == "ogg" {
-        fs::copy(file_path, &ogg_path).map_err(|e| format!("Failed to copy ogg: {}", e))?;
+        fs::copy(file_path, &ogg_path).map_err(|e| format!("Failed to copy ogg: {e}"))?;
     } else {
         let ff = Command::new(ffmpeg_path())
             .args([
@@ -366,7 +366,7 @@ fn install_track(
     }
 
     let exe_dir = std::env::current_exe()
-        .map_err(|e| format!("Can't get exe path: {}", e))?
+        .map_err(|e| format!("Can't get exe path: {e}"))?
         .parent()
         .ok_or("Can't get exe dir")?
         .to_path_buf();
@@ -376,6 +376,7 @@ fn install_track(
 
     let ag_dir_str = ag_dir.to_str().unwrap().replace('\\', "/");
 
+    #[allow(clippy::uninlined_format_args)]
     let script = format!(
         r#"using UndertaleModLib;
 using UndertaleModLib.Models;
@@ -483,7 +484,7 @@ foreach (string file in Directory.GetFiles(importFolder))
         ag_dir = ag_dir_str
     );
 
-    fs::write(&csx, &script).map_err(|e| format!("Can't write csx to {:?}: {}", csx, e))?;
+    fs::write(&csx, &script).map_err(|e| format!("Can't write csx to {}: {}", csx.display(), e))?;
 
     // running UMT on win, dotnet on linux
     let data_win = Path::new(&game_path).join("data.win");
@@ -499,7 +500,7 @@ foreach (string file in Directory.GetFiles(importFolder))
                 data_win.to_str().unwrap(),
             ])
             .output()
-            .map_err(|e| format!("UndertaleModCLI not found: {}", e))?
+            .map_err(|e| format!("UndertaleModCLI not found: {e}"))?
     } else {
         let umt_bin = res_dir.join("UndertaleModCli");
         Command::new(&umt_bin)
@@ -512,7 +513,7 @@ foreach (string file in Directory.GetFiles(importFolder))
                 data_win.to_str().unwrap(),
             ])
             .output()
-            .map_err(|e| format!("UMT bin not found at {:?}: {}", umt_bin, e))?
+            .map_err(|e| format!("UMT bin not found at {}: {}", umt_bin.display(), e))?
     };
 
     if !umt_out.status.success() {
@@ -532,8 +533,7 @@ foreach (string file in Directory.GetFiles(importFolder))
 
     // writing to music.kdr
     let kdr = Path::new(&game_path).join("music.kdr");
-    let mut content =
-        fs::read_to_string(&kdr).map_err(|e| format!("Can't read music.kdr: {}", e))?;
+    let mut content = fs::read_to_string(&kdr).map_err(|e| format!("Can't read music.kdr: {e}"))?;
     write!(
         content,
         "\n{{\n\tdev_name: {}\n\ttitle: {}\n\tartist: {}\n\ttrack: {}\n\tstart: 1\n}}",
@@ -543,7 +543,7 @@ foreach (string file in Directory.GetFiles(importFolder))
         track_id
     )
     .unwrap();
-    fs::write(&kdr, content).map_err(|e| format!("Can't write music.kdr: {}", e))?;
+    fs::write(&kdr, content).map_err(|e| format!("Can't write music.kdr: {e}"))?;
 
     Ok(())
 }
